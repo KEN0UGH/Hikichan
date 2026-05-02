@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `sage` bool NOT NULL DEFAULT 0,
   `embed` text,
   `slug` varchar(255) DEFAULT NULL,
+  `mod` bool NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `board` (`board`),
   KEY `thread` (`thread`),
@@ -168,8 +169,8 @@ CREATE TABLE IF NOT EXISTS `boards` (
 -- Dumping data for table `boards`
 --
 
-INSERT INTO `boards` VALUES
-('b', 'Random', NULL);
+INSERT INTO `boards` (`uri`, `title`, `subtitle`) 
+VALUES ('b', 'Random', NULL);
 
 -- --------------------------------------------------------
 
