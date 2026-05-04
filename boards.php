@@ -27,7 +27,7 @@ if (!array_key_exists($sort, $sortable)) {
 }
 
 // --- FETCH BOARD DATA RAW ---
-$sql_base = "SELECT b.uri, b.title, b.subtitle,
+$sql_base = "SELECT b.uri, b.title, b.subtitle, b.channel,
                 (SELECT COUNT(*) FROM posts WHERE board = b.uri) AS total_posts,
                 (SELECT COUNT(*) FROM posts WHERE board = b.uri AND thread IS NULL) AS total_threads,
                 (SELECT COUNT(DISTINCT ip) FROM posts WHERE board = b.uri) AS unique_posters,
@@ -76,6 +76,8 @@ $boards = [];
 foreach ($boards_raw as $board) {
     $boards[] = [
         'uri' => $board['uri'],
+        // This builds the "channel/1/" part of your URL
+        'dir' => 'channel/' . $board['channel'] . '/',
         'title' => $board['title'],
         'subtitle' => $board['subtitle'],
         'posts' => number_format($board['total_posts']),

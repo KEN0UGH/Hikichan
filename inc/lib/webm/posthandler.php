@@ -127,10 +127,11 @@ function postHandler($post) {
                 if ($config['spoiler_images'] && isset($_POST['spoiler'])) {
                     $file = webm_set_spoiler($file);
                 } else {
-                    // Use a static MP4 icon in your thumb folder
-                    $file->thumb       = 'mp4.png';
-                    $file->thumbwidth  = 100;
-                    $file->thumbheight = 75;
+                    // Use 'file' as special keyword - template will use configured file icon
+                    $file->thumb = 'file';
+                    $size = @getimagesize(sprintf($config['file_thumb'], $config['file_icons']['mp4']));
+                    $file->thumbwidth  = $size[0];
+                    $file->thumbheight = $size[1];
                 }
 
                 // Provide some default video dimensions

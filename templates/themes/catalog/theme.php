@@ -145,6 +145,11 @@ class Catalog {
                 elseif ($thumb->thumb === 'spoiler') {
                     $post['file'] = $config['root'] . $config['spoiler_image'];
                 }
+                elseif ($thumb->thumb === 'file') {
+                    $file_icon = $config['file_icons'][$files[0]->extension] ?? $config['file_icons']['default'];
+                    $file_icon_thumb = sprintf($config['file_thumb'], $file_icon);
+                    $post['file'] = $config['root'] . $file_icon_thumb;
+                }
                 else {
                     $post['file'] = $config['uri_thumb'] . $thumb->thumb;
                 }

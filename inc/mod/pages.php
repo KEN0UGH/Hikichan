@@ -658,6 +658,8 @@ function mod_new_board(Context $ctx) {
             'id' => $last_id,
         ]);
 
+        buildIndex();
+
         $cache->delete('all_boards');
         Vichan\Functions\Theme\rebuild_themes('boards');
         header('Location: ?/', true, $config['redirect_http']);
