@@ -36,4 +36,6 @@ for ($i = 0; $i < 5; $i++) {
 
 header('Content-Type: image/png');
 imagepng($img);
-imagedestroy($img);
+if (PHP_VERSION_ID < 80500 && function_exists('imagedestroy')) {
+    @imagedestroy($img);
+}
