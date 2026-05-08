@@ -523,23 +523,31 @@ if ($step == 0) {
     sql_open();
     $mysql_version = mysql_version();
 
-    preg_match_all("/(^|\n)((SET|CREATE|INSERT).+)\n\n/msU", $sql, $queries);
-    $queries = $queries[2];
+    // Remove SQL comments (both -- style and /* */ style)
+    $sql = preg_replace('/--[^\n]*\n/', "\n", $sql);
+    $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
+    
+    // Split by semicolon to get individual queries
+    $queries = explode(';', $sql);
+    $queries = array_filter(array_map('trim', $queries), function($q) {
+        return !empty($q) && preg_match('/^(SET|CREATE|INSERT)/i', $q);
+    });
 
     $sql_errors = '';
     $sql_err_count = 0;
     foreach ($queries as $query) {
+        $query = trim($query) . ';';
         // Remove MySQL-specific comments (e.g., /*!40101 ... */)
         $query = preg_replace('/^\/\*![0-9]{5}\s+/', '', $query);
         $query = preg_replace('/\s+\*\/;?$/', ';', $query);
         
         if ($mysql_version < 50503)
-        $query = preg_replace('/(CHARSET=|CHARACTER SET )utf8mb4/', '$1utf8', $query);
+            $query = preg_replace('/(CHARSET=|CHARACTER SET )utf8mb4/', '$1utf8', $query);
         $query = preg_replace('/^([\w\s]*)`([0-9a-zA-Z$_\x{0080}-\x{FFFF}]+)`/u', '$1``$2``', $query);
         if (!query($query)) {
             $sql_err_count++;
             $error = db_error();
-            $sql_errors .= "<li>$sql_err_count<ul><li>$query</li><li>$error</li></ul></li>";
+            $sql_errors .= "<li>$sql_err_count<ul><li>" . htmlspecialchars(substr($query, 0, 100)) . "...</li><li>$error</li></ul></li>";
         }
     }
 
