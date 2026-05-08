@@ -170,8 +170,8 @@ CREATE TABLE IF NOT EXISTS `boards` (
 -- Dumping data for table `boards`
 --
 
-INSERT INTO `boards` (`uri`, `title`, `subtitle`) 
-VALUES ('b', 'Random', NULL);
+INSERT INTO `boards` (`uri`, `title`, `subtitle`, `owner_id`, `channel`, `adult`) 
+VALUES ('b', 'Random', 'Everything you want, that does not violate the rules of the board', 1, 1, 0);
 
 -- --------------------------------------------------------
 
