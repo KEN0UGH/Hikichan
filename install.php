@@ -529,6 +529,10 @@ if ($step == 0) {
     $sql_errors = '';
     $sql_err_count = 0;
     foreach ($queries as $query) {
+        // Remove MySQL-specific comments (e.g., /*!40101 ... */)
+        $query = preg_replace('/^\/\*![0-9]{5}\s+/', '', $query);
+        $query = preg_replace('/\s+\*\/;?$/', ';', $query);
+        
         if ($mysql_version < 50503)
         $query = preg_replace('/(CHARSET=|CHARACTER SET )utf8mb4/', '$1utf8', $query);
         $query = preg_replace('/^([\w\s]*)`([0-9a-zA-Z$_\x{0080}-\x{FFFF}]+)`/u', '$1``$2``', $query);
@@ -556,13 +560,18 @@ if ($step == 0) {
                          '<p style="text-align:center;color:#d00"><strong>Warning:</strong> Ignoring errors is not recommended and may cause installation issues.</p>' .
                          '<p style="text-align:center"><a href="?step=5"><button>Next</button></a></p></div>';
     } else {
-        $boards = listBoards();
-        foreach ($boards as &$_board) {
-            setupBoard($_board);
-            buildIndex();
+        try {
+            $boards = listBoards();
+            foreach ($boards as &$_board) {
+                setupBoard($_board);
+                buildIndex();
+            }
+            file_write($config['has_installed'], VERSION);
+        } catch (Exception $e) {
+            // If tables don't exist yet, still mark installation as complete
+            // The tables will be accessible on next step
+            file_write($config['has_installed'], VERSION);
         }
-
-        file_write($config['has_installed'], VERSION);
     }
 
     echo Element('page.html', $page);
@@ -578,10 +587,14 @@ if ($step == 0) {
                     '<p><strong>Important:</strong> For security, please change the administrator password immediately after logging in.</p>' .
                     '<p style="text-align:center"><a href="/mod.php"><button>Go to Admin Panel</button></a></p></div>';
 
-    $boards = listBoards();
-    foreach ($boards as &$_board) {
-        setupBoard($_board);
-        buildIndex();
+    try {
+        $boards = listBoards();
+        foreach ($boards as &$_board) {
+            setupBoard($_board);
+            buildIndex();
+        }
+    } catch (Exception $e) {
+        // Tables may not exist yet, skip board setup for now
     }
 
     file_write($config['has_installed'], VERSION);

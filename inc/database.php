@@ -68,9 +68,14 @@ function sql_open() {
 		$dsn .= ';' . $config['db']['dsn'];
 	try {
 		$options = array(
-			PDO::ATTR_TIMEOUT => $config['db']['timeout'],
-			PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true
+			PDO::ATTR_TIMEOUT => $config['db']['timeout']
 		);
+		// Use the new constant for PHP 8.5+, fallback to old constant for earlier versions
+		if (defined('Pdo\\Mysql::ATTR_USE_BUFFERED_QUERY')) {
+			$options[constant('Pdo\\Mysql::ATTR_USE_BUFFERED_QUERY')] = true;
+		} else if (defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY')) {
+			$options[PDO::MYSQL_ATTR_USE_BUFFERED_QUERY] = true;
+		}
 		if ($config['db']['persistent'])
 			$options[PDO::ATTR_PERSISTENT] = true;
 		$pdo = new PDO($dsn, $config['db']['user'], $config['db']['password'], $options);
