@@ -84,6 +84,9 @@ CREATE TABLE IF NOT EXISTS `board_counters` (
   `last_board_id` INT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB;
 
+INSERT INTO `board_counters` (`board`, `last_board_id`) 
+VALUES ('b', 0);
+
 -- --------------------------------------------------------
 
 --
