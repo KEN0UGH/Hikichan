@@ -29,6 +29,13 @@
                 <input size="25" type="text" name="subtitle" value="{{ board.subtitle|e }}" autocomplete="off">
             </td>
         </tr>
+        <tr>
+            <th>{% trans 'Adult Board' %}</th>
+            <td>
+                <input type="checkbox" name="adult" value="1" {% if board.adult %}checked{% endif %}>
+                <small>{% trans 'Mark this board as NSFW/adult content' %}</small>
+            </td>
+        </tr>
         {% if not new %}
         <tr>
             <th>{% trans 'Current Owner' %}</th>

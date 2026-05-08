@@ -1019,7 +1019,7 @@
 	// Banner settings.
 	// Banners are rotating, random images displayed to users at the top of thread pages and the catalog.
 	// You should upload your banners to static/banners.
-	$config['url_banner'] = '/banner.php';	// Custom script may be used.
+	$config['url_banner'] = '/hikichan/banner.php';	// Custom script may be used.
 	// Setting the banner dimensions stops the page shifting as it loads. If you have banners of various different sizes, unset these.
 	$config['banner_width'] = 300;
 	$config['banner_height'] = 100;
@@ -1068,7 +1068,7 @@
 
 	$config['boards'] = array(
 		"icon_hikichan" => array("index" => "/hikichan/index.html"), # would refer to /static/icons/vichan.png
-		"Boards" => array('bant', 'hi', 'test', 'ai', 'g', 'biz', 'meme', 'mu', 'v', 'kino', 'x', 'b'),
+		"Boards" => array('b', 'hi', 'test', 'ai', 'g', 'biz', 'meme', 'mu', 'v', 'kino', 'x', 'b'),
 		"Linkage" => array('a', "Offsite board name" => '//int.vichan.net/s/'),
 		"d_Boardlist" => array("Boardlist" => "/hikichan/boards.php"),
 		"d_Mod" => array("mod" => "/hikichan/mod?/"),

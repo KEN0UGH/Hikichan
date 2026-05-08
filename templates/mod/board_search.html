@@ -7,19 +7,19 @@
     <ul>
         {% for board in boards %}
             <li>
-                <a href="?/{{ config.board_path|sprintf(board.uri) }}{{ config.file_index }}">{{ config.board_abbreviation|sprintf(board.uri) }}</a>
+                <a href="?/{{ config.board_path|sprintf(board.channel, board.uri) }}{{ config.file_index }}">{{ config.board_abbreviation|sprintf(board.uri) }}</a>
                 - {{ board.title|e }}
                 {% if board.subtitle %}
                     <small>&mdash; {{ board.subtitle|e }}</small>
                 {% endif %}
                 {% if mod|hasPermission(config.mod.manageboards) %}
-                    <a href="?/edit/{{ config.board_path|sprintf(board.uri)|trim('/') }}"><small>[{% trans 'edit' %}]</small></a>
+                    <a href="?/edit/{{ config.board_path|sprintf(board.channel, board.uri)|trim('/') }}"><small>[{% trans 'edit' %}]</small></a>
                 {% endif %}
                 {% if mod|hasPermission(config.mod.edit_pages) %}
-                    <a href="?/edit_pages/{{ config.board_path|sprintf(board.uri)|trim('/') }}"><small>[{% trans 'pages' %}]</small></a>
+                    <a href="?/edit_pages/{{ config.board_path|sprintf(board.channel, board.uri)|trim('/') }}"><small>[{% trans 'pages' %}]</small></a>
                 {% endif %}
                 {% if mod %}
-                    <a href="?/{{ config.board_path|sprintf(board.uri) }}archive/"><small>[{% trans 'archive' %}]</small></a>
+                    <a href="?/{{ config.board_path|sprintf(board.channel, board.uri) }}archive/"><small>[{% trans 'archive' %}]</small></a>
                 {% endif %}
             </li>
         {% else %}

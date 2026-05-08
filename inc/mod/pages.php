@@ -3467,19 +3467,27 @@ function mod_rebuild(Context $ctx) {
                 }
             }
 
-            // Fetch threads for this board
-            $log[] = "Thread list fetched for board <strong>$board_uri</strong>.";
-            $query = prepare("SELECT `id` FROM ``posts`` WHERE `board` = :board AND `thread` IS NULL");
-            $query->bindValue(':board', $board_uri);
-            $query->execute() or error(db_error($query));
-            $progress['threads'] = [];
-            while ($post = $query->fetch(PDO::FETCH_ASSOC)) {
-                $progress['threads'][] = $post['id'];
+            // Fetch threads for this board only if we need to rebuild threads or posts
+            if (!empty($options['rebuild_threads']) || !empty($options['rebuild_posts'])) {
+                $log[] = "Thread list fetched for board <strong>$board_uri</strong>.";
+                $query = prepare("SELECT `id` FROM ``posts`` WHERE `board` = :board AND `thread` IS NULL");
+                $query->bindValue(':board', $board_uri);
+                $query->execute() or error(db_error($query));
+                $progress['threads'] = [];
+                while ($post = $query->fetch(PDO::FETCH_ASSOC)) {
+                    $progress['threads'][] = $post['id'];
+                }
+                $progress['thread_index'] = 0;
+                $progress['replies'] = [];
+                $progress['reply_index'] = 0;
+                $progress['current_thread'] = null;
+            } else {
+                $progress['threads'] = [];
+                $progress['replies'] = [];
+                $progress['thread_index'] = 0;
+                $progress['reply_index'] = 0;
+                $progress['current_thread'] = null;
             }
-            $progress['thread_index'] = 0;
-            $progress['replies'] = [];
-            $progress['reply_index'] = 0;
-            $progress['current_thread'] = null;
 
             // Archive batch rebuild for this board
             if (!empty($options['rebuild_archive']) && class_exists('Archive')) {

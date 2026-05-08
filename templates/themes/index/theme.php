@@ -138,7 +138,10 @@
 
                 $post['snippet'] = ($post['body'] != "") ? pm_snippet($post['body'], 150) : "<em>" . _("(no comment)") . "</em>";
                 $post['board_name'] = $board['name'];
-                $post['nsfw'] = in_array($post['board'], explode(' ', $settings['nsfw_boards'])) ? true : false;
+                
+                // Check if board is marked as adult OR if it's in the nsfw_boards setting
+                $is_nsfw_board = (isset($board['adult']) && $board['adult']) || in_array($post['board'], explode(' ', $settings['nsfw_boards']));
+                $post['nsfw'] = $is_nsfw_board ? true : false;
 
                 $recent_activity[] = $post;
             }
