@@ -172,6 +172,52 @@
             $query = query("SELECT * FROM ``news`` ORDER BY `time` DESC" . ($settings['no_recent'] ? ' LIMIT ' . $settings['no_recent'] : '')) or error(db_error());
             $news = $query->fetchAll(PDO::FETCH_ASSOC);
 
+            // Fetch boards marked to show in index with their stats
+            $index_boards = [];
+            $query = prepare('SELECT `uri`, `title`, `subtitle`, `channel` FROM ``boards`` WHERE `show_in_index` = 1 ORDER BY `board_order` ASC, `uri` ASC');
+            $query->execute() or error(db_error($query));
+            $boards_to_index = $query->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($boards_to_index as $idx_board) {
+                $idx_board_uri = $pdo->quote($idx_board['uri']);
+                
+                // Total posts
+                $query = prepare('SELECT COUNT(*) FROM ``posts`` WHERE `board` = :board');
+                $query->bindValue(':board', $idx_board['uri']);
+                $query->execute() or error(db_error($query));
+                $total_posts = $query->fetchColumn();
+                
+                // Total threads
+                $query = prepare('SELECT COUNT(*) FROM ``posts`` WHERE `board` = :board AND `thread` IS NULL');
+                $query->bindValue(':board', $idx_board['uri']);
+                $query->execute() or error(db_error($query));
+                $total_threads = $query->fetchColumn();
+                
+                // Unique posters
+                $query = prepare('SELECT COUNT(DISTINCT(`ip`)) FROM ``posts`` WHERE `board` = :board');
+                $query->bindValue(':board', $idx_board['uri']);
+                $query->execute() or error(db_error($query));
+                $unique_posters = $query->fetchColumn();
+                
+                // Posts per month
+                $query = prepare('SELECT COUNT(*) FROM ``posts`` WHERE `board` = :board AND `time` >= :since');
+                $query->bindValue(':board', $idx_board['uri']);
+                $query->bindValue(':since', time() - (86400 * 30), PDO::PARAM_INT);
+                $query->execute() or error(db_error($query));
+                $ppm = $query->fetchColumn();
+                
+                $index_boards[] = [
+                    'uri' => $idx_board['uri'],
+                    'dir' => 'channel/' . $idx_board['channel'] . '/',
+                    'title' => $idx_board['title'],
+                    'subtitle' => $idx_board['subtitle'],
+                    'posts' => number_format($total_posts),
+                    'threads' => number_format($total_threads),
+                    'posters' => number_format($unique_posters),
+                    'ppm' => number_format($ppm)
+                ];
+            }
+
             // Excluded boards for boardlist
             $excluded_boards = isset($settings['exclude_board_list']) ? explode(' ', $settings['exclude_board_list']) : [];
             $boardlist = array_filter($boards, function($board) use ($excluded_boards) {
@@ -185,6 +231,7 @@
                 'recent_activity' => $recent_activity,
                 'stats' => $stats,
                 'news' => $news,
+                'index_boards' => $index_boards,
                 'boards' => $boardlist
             ));
         }

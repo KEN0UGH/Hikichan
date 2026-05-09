@@ -36,6 +36,22 @@
                 <small>{% trans 'Mark this board as NSFW/adult content' %}</small>
             </td>
         </tr>
+        {% if mod|hasPermission(config.mod.manageboards) %}
+        <tr>
+            <th>{% trans 'Show in Index' %}</th>
+            <td>
+                <input type="checkbox" name="show_in_index" value="1" {% if board.show_in_index %}checked{% endif %}>
+                <small>{% trans 'Display this board in the homepage index' %}</small>
+            </td>
+        </tr>
+        <tr>
+            <th>{% trans 'Board Order' %}</th>
+            <td>
+                <input size="5" type="number" name="board_order" value="{{ board.board_order|default(0) }}" autocomplete="off">
+                <small>{% trans 'Order in index (lower numbers appear first)' %}</small>
+            </td>
+        </tr>
+        {% endif %}
         {% if not new %}
         <tr>
             <th>{% trans 'Current Owner' %}</th>

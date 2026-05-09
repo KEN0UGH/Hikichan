@@ -174,3 +174,61 @@
 .stats {
 	list-style: none;
 }
+
+/* Boards List Table */
+.boards-list {
+	width: 100%;
+	overflow-x: auto;
+	padding: 0;
+}
+
+.boards-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 0 auto;
+	background: #fff;
+	font-size: 14px;
+}
+
+.boards-table thead {
+	background: #59A;
+	color: white;
+}
+
+.boards-table th {
+	padding: 10px;
+	text-align: left;
+	border: 1px solid #ddd;
+	font-weight: bold;
+}
+
+.boards-table td {
+	padding: 8px 10px;
+	border: 1px solid #e0e0e0;
+	text-align: center;
+}
+
+.boards-table tbody tr:nth-child(odd) {
+	background: #f9f9f9;
+}
+
+.boards-table tbody tr:hover {
+	background: #f0f8ff;
+}
+
+.boards-table td:first-child {
+	text-align: left;
+}
+
+.boards-table td:nth-child(2) {
+	text-align: left;
+}
+
+.boards-table a {
+	color: #0066cc;
+	text-decoration: none;
+}
+
+.boards-table a:hover {
+	text-decoration: underline;
+}

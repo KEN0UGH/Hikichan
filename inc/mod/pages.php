@@ -576,10 +576,16 @@ function mod_edit_board(Context $ctx, $channel, $boardName) {
                 error(_('Username not found. Board owner not changed.'));
             }
         }
-        // ...existing update logic for title/subtitle...
-        $query = prepare('UPDATE ``boards`` SET `title` = :title, `subtitle` = :subtitle WHERE `uri` = :uri');
+        // Update board details
+        $show_in_index = isset($_POST['show_in_index']) ? 1 : 0;
+        $adult = isset($_POST['adult']) ? 1 : 0;
+        $board_order = isset($_POST['board_order']) ? (int)$_POST['board_order'] : 0;
+        $query = prepare('UPDATE ``boards`` SET `title` = :title, `subtitle` = :subtitle, `adult` = :adult, `show_in_index` = :show_in_index, `board_order` = :board_order WHERE `uri` = :uri');
         $query->bindValue(':title', $_POST['title']);
         $query->bindValue(':subtitle', $_POST['subtitle']);
+        $query->bindValue(':adult', $adult);
+        $query->bindValue(':show_in_index', $show_in_index);
+        $query->bindValue(':board_order', $board_order, PDO::PARAM_INT);
         $query->bindValue(':uri', $board['uri']);
         $query->execute() or error(db_error($query));
 
@@ -637,13 +643,19 @@ function mod_new_board(Context $ctx) {
 
         $cache = $ctx->get(CacheDriver::class);
 
-        // Insert board with owner_id
-        $query = prepare('INSERT INTO ``boards`` (`uri`, `title`, `subtitle`, `owner_id`, `channel`) VALUES (:uri, :title, :subtitle, :owner_id, :channel)');
+        // Insert board with owner_id and show_in_index
+        $show_in_index = isset($_POST['show_in_index']) ? 1 : 0;
+        $adult = isset($_POST['adult']) ? 1 : 0;
+        $board_order = isset($_POST['board_order']) ? (int)$_POST['board_order'] : 0;
+        $query = prepare('INSERT INTO ``boards`` (`uri`, `title`, `subtitle`, `owner_id`, `channel`, `adult`, `show_in_index`, `board_order`) VALUES (:uri, :title, :subtitle, :owner_id, :channel, :adult, :show_in_index, :board_order)');
         $query->bindValue(':uri', $uri);
         $query->bindValue(':title', $_POST['title']);
         $query->bindValue(':subtitle', $_POST['subtitle']);
         $query->bindValue(':owner_id', $mod['id']);
         $query->bindValue(':channel', $channel, PDO::PARAM_INT);
+        $query->bindValue(':adult', $adult);
+        $query->bindValue(':show_in_index', $show_in_index);
+        $query->bindValue(':board_order', $board_order, PDO::PARAM_INT);
         $query->execute() or error(db_error($query));
 
         // Get the last inserted ID

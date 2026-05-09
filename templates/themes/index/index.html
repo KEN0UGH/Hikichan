@@ -21,22 +21,6 @@
 	{% if config.url_banner %}<img class="board_image" src="{{ config.url_banner }}" {% if config.banner_width or config.banner_height %}style="{% if config.banner_width %}width:{{ config.banner_width }}px{% endif %};{% if config.banner_width %}height:{{ config.banner_height }}px{% endif %}" {% endif %}alt="" />{% endif %}
 	
 	<div class="box-wrap">
-		<div class="ban">
-			<h2>Boards</h2>
-			{% if settings.use_boardlist %}
-				<div class="boardlist">{{ settings.boardlist }}</div>
-			{% else %}
-				<ul>
-					{% for board in boards %}
-						<li class="boardlinksurl">
-							<a href="{{ config.board_path|sprintf(board.uri) }}">
-								{{ board.title|e }}
-							</a>
-						</li>
-					{% endfor %}
-				</ul>
-			{% endif %}
-		</div>
 		
 		{% if settings.description or settings.featured_image or settings.quote or settings.video_embed %}
 		<div class="ban" id="vichan-info">
@@ -61,6 +45,52 @@
 			{% endif %}
 		</div>
 		{% endif %}
+
+		<div class="ban">
+			<h2>Boards</h2>
+			{% if index_boards|length > 0 %}
+				<div class="boards-list">
+					<table class="boards-table">
+						<thead>
+							<tr>
+								<th>Board</th>
+								<th>Title</th>
+								<th>Posts</th>
+								<th>Threads</th>
+								<th>Posters</th>
+								<th>PPM</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for board in index_boards %}
+								<tr>
+									<td><a href="{{ config.root }}{{ board.dir }}{{ board.uri }}/">{{ board.uri }}</a></td>
+									<td><strong>{{ board.title }}</strong></td>
+									<td>{{ board.posts }}</td>
+									<td>{{ board.threads }}</td>
+									<td>{{ board.posters }}</td>
+									<td>{{ board.ppm }}</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			{% else %}
+				{% if settings.use_boardlist %}
+					<div class="boardlist">{{ settings.boardlist }}</div>
+				{% else %}
+					<ul>
+						{% for board in boards %}
+							<li class="boardlinksurl">
+								<a href="{{ config.board_path|sprintf(board.channel, board.uri) }}">
+									{{ board.title|e }}
+								</a>
+							</li>
+						{% endfor %}
+					</ul>
+				{% endif %}
+			{% endif %}
+		</div>
 	
 		<div class="ban">
 			<h2>News</h2>
