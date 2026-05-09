@@ -560,6 +560,23 @@ function mod_edit_board(Context $ctx, $channel, $boardName) {
         error($config['error']['noaccess']);
     }
 
+    // Handle board deletion
+    if (isset($_POST['delete'])) {
+        if (!hasPermission($config['mod']['deleteboard'])) {
+            error($config['error']['noaccess']);
+        }
+        
+        // Delete the board
+        deleteBoard($boardName);
+        modLog('Deleted board', $board['uri']);
+        
+        $cache->delete('all_boards');
+        Vichan\Functions\Theme\rebuild_themes('boards');
+        
+        header('Location: ?/', true, $config['redirect_http']);
+        exit;
+    }
+
     if (isset($_POST['title'], $_POST['subtitle'])) {
         // Reassign owner if requested
         if (isset($_POST['new_owner_username']) && $_POST['new_owner_username'] !== '') {

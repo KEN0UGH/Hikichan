@@ -444,6 +444,97 @@ function setupBoard($array) {
     }
 }
 
+function deleteBoard($board_uri) {
+    global $config;
+    
+    // Get board info
+    $query = prepare("SELECT * FROM ``boards`` WHERE `uri` = :uri LIMIT 1");
+    $query->bindValue(':uri', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    if (!$board = $query->fetch(PDO::FETCH_ASSOC)) {
+        return false; // Board doesn't exist
+    }
+    
+    // Delete all posts from this board (get post IDs first for cleanup)
+    $query = prepare("SELECT `id` FROM ``posts`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    $post_ids = $query->fetchAll(PDO::FETCH_COLUMN);
+    
+    // Delete cites (cross-references between posts)
+    if (!empty($post_ids)) {
+        $query = prepare("DELETE FROM ``cites`` WHERE (`target_board` = :board) OR (`board` = :board AND (`post` = " . implode(' OR `post` = ', $post_ids) . "))");
+        $query->bindValue(':board', $board_uri);
+        $query->execute() or error(db_error($query));
+    }
+    
+    // Delete antispam entries for this board
+    $query = prepare("DELETE FROM ``antispam`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Delete all posts from this board
+    $query = prepare("DELETE FROM ``posts`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Delete archived threads for this board
+    $query = prepare("DELETE FROM ``archive_threads`` WHERE `board_uri` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Delete archive votes for this board
+    $query = prepare("DELETE FROM ``archive_votes`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Delete board counter
+    $query = prepare("DELETE FROM ``board_counters`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Delete reports for posts on this board
+    $query = prepare("DELETE FROM ``reports`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Delete flood records for this board
+    $query = prepare("DELETE FROM ``flood`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Delete board-specific bans
+    $query = prepare("DELETE FROM ``bans`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Delete modlog entries for this board
+    $query = prepare("DELETE FROM ``modlogs`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Calculate the board directory
+    $channel = isset($board['channel']) ? $board['channel'] : max(1, ceil($board['id'] / $config['boards_per_channel']));
+    $board_dir = sprintf($config['board_path'], $channel, $board_uri);
+    
+    // Delete board directory and all its contents
+    if (file_exists($board_dir)) {
+        rrmdir($board_dir);
+    }
+    
+    // Delete board from database
+    $query = prepare("DELETE FROM ``boards`` WHERE `uri` = :uri");
+    $query->bindValue(':uri', $board_uri);
+    $query->execute() or error(db_error($query));
+    
+    // Clear cache
+    cache::delete('board_' . $board_uri);
+    cache::delete('all_boards');
+    
+    return true;
+}
+
 function openBoard($uri) {
     global $config, $build_pages, $board;
 
