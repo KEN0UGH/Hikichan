@@ -355,6 +355,12 @@ class Archive {
         $del_vote_query->bindValue(':thread_id', $original_thread_id, PDO::PARAM_INT);
         $del_vote_query->execute() or error(db_error($del_vote_query));
 
+        // Delete reports for this archived thread
+        $del_reports_query = prepare("DELETE FROM `reports` WHERE `board` = :board AND `post` = :post");
+        $del_reports_query->bindValue(':board', $board_uri, PDO::PARAM_STR);
+        $del_reports_query->bindValue(':post', $original_thread_id, PDO::PARAM_INT);
+        $del_reports_query->execute() or error(db_error($del_reports_query));
+
         modLog(sprintf("Deleted archived thread #%d (original: %d) from board %s", $archive_entry_id, $original_thread_id, $board_uri));
         self::buildArchiveIndex($board_uri);
     }

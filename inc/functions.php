@@ -1209,10 +1209,16 @@ function deletePost($id, $error_if_doesnt_exist = true, $rebuild_after = true) {
     }
 
     $ids = array();
+    $is_thread_deletion = false;
 
     // Delete posts and maybe replies
     while ($post = $query->fetch(PDO::FETCH_ASSOC)) {
         event('delete', $post);
+
+        // Check if we're deleting a thread (OP has no thread reference)
+        if (!$post['thread']) {
+            $is_thread_deletion = true;
+        }
 
         $thread_id = $post['thread'];
         $live_date_path = $post['live_date_path'] ? $post['live_date_path'] . '/' : '';
@@ -1247,6 +1253,21 @@ function deletePost($id, $error_if_doesnt_exist = true, $rebuild_after = true) {
     $query->bindValue(':board', $board['uri']);
     $query->bindValue(':id', $id, PDO::PARAM_INT);
     $query->execute() or error(db_error($query));
+
+    // Delete reports for these posts
+    if (!empty($ids)) {
+        $query = prepare("DELETE FROM ``reports`` WHERE `board` = :board AND (`post` = " . implode(' OR `post` = ', $ids) . ")");
+        $query->bindValue(':board', $board['uri']);
+        $query->execute() or error(db_error($query));
+    }
+
+    // Delete archive votes for this thread (if we're deleting a thread)
+    if ($is_thread_deletion) {
+        $query = prepare("DELETE FROM ``archive_votes`` WHERE `board` = :board AND `thread_id` = :thread_id");
+        $query->bindValue(':board', $board['uri']);
+        $query->bindValue(':thread_id', $id, PDO::PARAM_INT);
+        $query->execute() or error(db_error($query));
+    }
 
     $query = prepare("SELECT `board`, `post` FROM ``cites`` WHERE `target_board` = :board AND (`target` = " . implode(' OR `target` = ', $ids) . ") ORDER BY `board`");
     $query->bindValue(':board', $board['uri']);
