@@ -8,6 +8,10 @@ class Archive {
         if(!$config['archive']['threads'])
             return;
 
+        // NOTE: This function copies thread content to archive but does NOT delete the posts from the posts table.
+        // The caller is responsible for calling deletePost() after archiveThread() completes.
+        // If not deleted, posts will remain in the posts table and orphaned posts may accumulate.
+
         // Fetch thread data, including live_date_path
         $thread_query = prepare("SELECT `thread`, `subject`, `body_nomarkup`, `trip`, `board_id`, `live_date_path` FROM ``posts`` WHERE `board` = :board AND `id` = :id");
         $thread_query->bindValue(':board', $board['uri']);
@@ -174,7 +178,10 @@ class Archive {
         $query->bindValue(':lifetime', strtotime("-" . $config['archive']['lifetime']), PDO::PARAM_INT);
         $query->execute() or error(db_error($query));
 
+        $thread_ids = [];
         while($thread = $query->fetch(PDO::FETCH_ASSOC)) {
+            $thread_ids[] = $thread['original_thread_id'];
+            
             $archive_res_path = $board['dir'] . $config['dir']['archive'] . $config['dir']['res'] . $thread['path'] . '/';
             $archive_img_path = $board['dir'] . $config['dir']['archive'] . $config['dir']['img'] . $thread['path'] . '/';
             $archive_thumb_path = $board['dir'] . $config['dir']['archive'] . $config['dir']['thumb'] . $thread['path'] . '/';
@@ -186,14 +193,25 @@ class Archive {
             @unlink($archive_res_path . sprintf($config['file_page'], $thread['original_thread_id']));
         }
 
-        if($query->rowCount() != 0) {
+        if(!empty($thread_ids)) {
+            // Delete any remaining posts from the posts table for these archived threads
+            $delete_posts_query = prepare("DELETE FROM ``posts`` WHERE `board` = :board AND (`id` = " . implode(' OR `id` = ', $thread_ids) . " OR `thread` = " . implode(' OR `thread` = ', $thread_ids) . ")");
+            $delete_posts_query->bindValue(':board', $board_uri, PDO::PARAM_STR);
+            $delete_posts_query->execute() or error(db_error($delete_posts_query));
+            
+            // Delete from archive_threads
             $delete_query = prepare("DELETE FROM `archive_threads` WHERE `board_uri` = :board_uri AND `lifetime` < :lifetime AND `featured` = 0 AND `mod_archived` = 0");
             $delete_query->bindValue(':board_uri', $board_uri, PDO::PARAM_STR);
             $delete_query->bindValue(':lifetime', strtotime("-" . $config['archive']['lifetime']), PDO::PARAM_INT);
             $delete_query->execute() or error(db_error($delete_query));
 
-            modLog(sprintf("Purged %d archived threads from board %s due to expiration date", $delete_query->rowCount(), $board_uri));
-            return $delete_query->rowCount();
+            // Delete archive votes for these threads
+            $del_votes_query = prepare("DELETE FROM `archive_votes` WHERE `board` = :board AND (`thread_id` = " . implode(' OR `thread_id` = ', $thread_ids) . ")");
+            $del_votes_query->bindValue(':board', $board_uri, PDO::PARAM_STR);
+            $del_votes_query->execute() or error(db_error($del_votes_query));
+
+            modLog(sprintf("Purged %d archived threads from board %s due to expiration date", count($thread_ids), $board_uri));
+            return count($thread_ids);
         }
         return 0;
     }
@@ -360,6 +378,12 @@ class Archive {
         $del_reports_query->bindValue(':board', $board_uri, PDO::PARAM_STR);
         $del_reports_query->bindValue(':post', $original_thread_id, PDO::PARAM_INT);
         $del_reports_query->execute() or error(db_error($del_reports_query));
+
+        // Delete any remaining posts from the posts table for this archived thread
+        $del_posts_query = prepare("DELETE FROM `posts` WHERE `board` = :board AND (`id` = :thread_id OR `thread` = :thread_id)");
+        $del_posts_query->bindValue(':board', $board_uri, PDO::PARAM_STR);
+        $del_posts_query->bindValue(':thread_id', $original_thread_id, PDO::PARAM_INT);
+        $del_posts_query->execute() or error(db_error($del_posts_query));
 
         modLog(sprintf("Deleted archived thread #%d (original: %d) from board %s", $archive_entry_id, $original_thread_id, $board_uri));
         self::buildArchiveIndex($board_uri);
