@@ -128,6 +128,8 @@ $pages = [
         str_replace(['%d', '%s'], ['(\d+)', '[a-z0-9-]+'], preg_quote($config['file_page_slug'], '!')) => 'view_thread',
     // Board index pagination
     '/channel/(\d+)/([a-zA-Z0-9$_\\x{0080}-\\x{10FFFF}]+)/pagination/(\d+)/(\d+)\.html' => 'view_board',
+    // Catalog pagination pages
+    '/channel/(\d+)/([a-zA-Z0-9$_\\x{0080}-\\x{10FFFF}]+)/pagination/(\d+)/catalog_page_(\d+)\.html' => 'view_catalog_page',
     // Board index and catalog
     '/channel/(\d+)/([a-zA-Z0-9$_\\x{0080}-\\x{10FFFF}]+)/' => 'view_board',
     '/channel/(\d+)/([a-zA-Z0-9$_\\x{0080}-\\x{10FFFF}]+)/' . preg_quote($config['file_index'], '!') => 'view_board',

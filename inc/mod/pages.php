@@ -967,16 +967,39 @@ function mod_board_log(Context $ctx, $board, $page_no = 1, $hide_names = false, 
 	);
 }
 
-function mod_view_catalog(Context $ctx, $boardName) {
+function mod_view_catalog(Context $ctx, $channel, $boardName) {
 	$config = $ctx->get('config');
+	
+	if (!openBoard($boardName))
+		error($config['error']['noboard']);
+	
 	require_once($config['dir']['themes'].'/catalog/theme.php');
-	$settings = [];
+	$settings = Vichan\Functions\Theme\theme_settings('catalog');
 	$settings['boards'] = $boardName;
 	$settings['update_on_posts'] = true;
-	$settings['title'] = 'Catalog';
-	$settings['use_tooltipster'] = true;
 	$catalog = new Catalog();
 	echo $catalog->build($settings, $boardName, true);
+}
+
+function mod_view_catalog_page(Context $ctx, $channel, $boardName, $folder, $pageNum) {
+	$config = $ctx->get('config');
+	
+	if (!openBoard($boardName))
+		error($config['error']['noboard']);
+	
+	$folder = (int)$folder;
+	$pageNum = (int)$pageNum;
+	
+	if ($pageNum < 2) 
+		error($config['error']['404']);
+	
+	// Construct the path to the catalog pagination file
+	$filepath = $config['dir']['home'] . 'channel/' . $channel . '/' . $boardName . '/pagination/' . $folder . '/catalog_page_' . $pageNum . '.html';
+	
+	if (!file_exists($filepath))
+		error($config['error']['404']);
+	
+	echo file_get_contents($filepath);
 }
 
 function mod_view_board(Context $ctx, $channel, $boardName, $folder = null, $page_no = 1) {
