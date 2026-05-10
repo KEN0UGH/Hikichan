@@ -2412,6 +2412,38 @@ function strip_combining_chars($str) {
 	return preg_replace('/(\p{Me}|\p{Mn}){'.$limit.',}/u','', $str);
 }
 
+// Helper function to render thread HTML with specified context
+function renderThreadHtml($thread, $poll, $id, $isMod = false, $is50 = false) {
+    global $board, $config;
+    
+    $hasnoko50 = $thread->postCount() >= $config['noko50_min'];
+    $root = $isMod ? '?/' : $config['root'];
+    $boardlist = createBoardlist($isMod);
+    $return_url = $isMod ? 
+        '?/' . sprintf($config['board_path'], $board['channel'], $board['uri']) . $config['file_index'] :
+        $config['root'] . $board['dir'] . $config['file_index'];
+    
+    $options = [
+        'board' => $board,
+        'thread' => $thread,
+        'poll' => $poll,
+        'body' => $is50 ? $thread->build(false, true) : $thread->build(),
+        'config' => $config,
+        'id' => $id,
+        'mod' => $isMod,
+        'hasnoko50' => $hasnoko50,
+        'isnoko50' => $is50,
+        'boardlist' => $boardlist,
+        'return' => $return_url
+    ];
+    
+    if ($isMod) {
+        $options['pm'] = create_pm_header();
+    }
+    
+    return Element($config['file_thread'], $options);
+}
+
 function buildThread($id, $return = false, $mod = false) {
     global $board, $config, $build_pages;
 
@@ -2443,18 +2475,20 @@ function buildThread($id, $return = false, $mod = false) {
     $action = generation_strategy('sb_thread', array($board['uri'], $id));
 
     if ($action == 'rebuild' || $return || $mod) {
+        // Query ONCE, build thread ONCE
         $query = prepare("SELECT * FROM ``posts`` WHERE `board` = :board AND ((`thread` IS NULL AND `id` = :id) OR `thread` = :id) ORDER BY `thread`,`id`");
         $query->bindValue(':board', $board['uri']);
         $query->bindValue(':id', $id, PDO::PARAM_INT);
         $query->execute() or error(db_error($query));
 
+        $thread = null;
+        $live_date_path = null;
         while ($post = $query->fetch(PDO::FETCH_ASSOC)) {
             if (!isset($thread)) {
-                // Always build thread for public view (non-mod)
+                // Build thread with public URLs
                 $thread = new Thread($post, $config['root'], false);
                 $live_date_path = $post['live_date_path'];
             } else {
-                // Always build posts for public view (non-mod)
                 $thread->add(new Post($post, $config['root'], false));
             }
         }
@@ -2465,62 +2499,15 @@ function buildThread($id, $return = false, $mod = false) {
         $hasnoko50 = $thread->postCount() >= $config['noko50_min'];
         $poll = get_poll($id);
 
-        // Build public view (always with mod = false for saving)
-        $options = [
-            'board' => $board,
-            'thread' => $thread,
-            'poll' => $poll,
-            'body' => $thread->build(),
-            'config' => $config,
-            'id' => $id,
-            'mod' => false,
-            'hasnoko50' => $hasnoko50,
-            'isnoko50' => false,
-            'boardlist' => createBoardlist(false),
-            'return' => $config['root'] . $board['dir'] . $config['file_index']
-        ];
-
-        $body = Element($config['file_thread'], $options);
+        // Render public view
+        $body = renderThreadHtml($thread, $poll, $id, false, false);
 
         // Write HTML file using live_date_path (always public view)
         file_write($board['dir'] . $config['dir']['res'] . $live_date_path . '/' . link_for($thread), $body);
         
-        // If mod is viewing and wants return value, rebuild with mod view
+        // If mod is viewing and wants return value, render mod view (no second query/build needed)
         if ($mod && $return) {
-            // Clear and rebuild with mod context for return value
-            $query = prepare("SELECT * FROM ``posts`` WHERE `board` = :board AND ((`thread` IS NULL AND `id` = :id) OR `thread` = :id) ORDER BY `thread`,`id`");
-            $query->bindValue(':board', $board['uri']);
-            $query->bindValue(':id', $id, PDO::PARAM_INT);
-            $query->execute() or error(db_error($query));
-
-            $mod_thread = null;
-            while ($post = $query->fetch(PDO::FETCH_ASSOC)) {
-                if (!isset($mod_thread)) {
-                    $mod_thread = new Thread($post, '?/', $mod);
-                } else {
-                    $mod_thread->add(new Post($post, '?/', $mod));
-                }
-            }
-            
-            $mod_options = [
-                'board' => $board,
-                'thread' => $mod_thread,
-                'poll' => $poll,
-                'body' => $mod_thread->build(),
-                'config' => $config,
-                'id' => $id,
-                'mod' => $mod,
-                'hasnoko50' => $hasnoko50,
-                'isnoko50' => false,
-                'boardlist' => createBoardlist($mod),
-                'return' => '?/' . sprintf($config['board_path'], $board['channel'], $board['uri']) . $config['file_index']
-            ];
-
-            if ($mod) {
-                $mod_options['pm'] = create_pm_header();
-            }
-
-            $body = Element($config['file_thread'], $mod_options);
+            $body = renderThreadHtml($thread, $poll, $id, true, false);
         }
 
         // json api
@@ -2566,6 +2553,7 @@ function buildThread50($id, $return = false, $mod = false, $thread = null, $live
     global $board, $config;
     $id = round($id);
 
+    // If thread object is already passed, use it; otherwise query for last N posts
     if (!$thread) {
         $query = prepare("SELECT * FROM ``posts`` WHERE `board` = :board AND ((`thread` IS NULL AND `id` = :id) OR `thread` = :id) ORDER BY `thread`,`id` DESC LIMIT :limit");
         $query->bindValue(':board', $board['uri']);
@@ -2576,13 +2564,11 @@ function buildThread50($id, $return = false, $mod = false, $thread = null, $live
         $num_images = 0;
         while ($post = $query->fetch(PDO::FETCH_ASSOC)) {
             if (!isset($thread)) {
-                // Always build for public view (non-mod)
                 $thread = new Thread($post, $config['root'], false);
                 $live_date_path = $post['live_date_path'];
             } else {
                 if ($post['files'])
                     $num_images += $post['num_files'];
-                // Always build for public view (non-mod)
                 $thread->add(new Post($post, $config['root'], false));
             }
         }
@@ -2609,84 +2595,17 @@ function buildThread50($id, $return = false, $mod = false, $thread = null, $live
         $live_date_path = $thread->posts[0]->live_date_path;
     }
 
-    $hasnoko50 = $thread->postCount() >= $config['noko50_min'];
+    // Render public noko50 view
+    $body = renderThreadHtml($thread, null, $id, false, true);
 
-    // Build public view (always with mod = false for saving)
-    $options = [
-        'board' => $board,
-        'thread' => $thread,
-        'body' => $thread->build(false, true),
-        'config' => $config,
-        'id' => $id,
-        'mod' => false,
-        'hasnoko50' => $hasnoko50,
-        'isnoko50' => true,
-        'boardlist' => createBoardlist(false),
-        'return' => $config['root'] . $board['dir'] . $config['file_index']
-    ];
-
-    $body = Element($config['file_thread'], $options);
-
-    // Always write public version to file
+    // Write noko50 file if not returning (always save public version)
     if (!$return) {
-        // Write noko50 file using live_date_path (public view)
         file_write($board['dir'] . $config['dir']['res'] . $live_date_path . '/' . link_for($thread, true), $body);
     }
     
-    // If mod is viewing and wants return value, rebuild with mod view
+    // If mod is viewing and wants return value, render mod view (no second query/build needed)
     if ($mod && $return) {
-        // Rebuild thread with mod context for return value
-        $query = prepare("SELECT * FROM ``posts`` WHERE `board` = :board AND ((`thread` IS NULL AND `id` = :id) OR `thread` = :id) ORDER BY `thread`,`id` DESC LIMIT :limit");
-        $query->bindValue(':board', $board['uri']);
-        $query->bindValue(':id', $id, PDO::PARAM_INT);
-        $query->bindValue(':limit', $config['noko50_count']+1, PDO::PARAM_INT);
-        $query->execute() or error(db_error($query));
-
-        $mod_thread = null;
-        $num_images = 0;
-        while ($post = $query->fetch(PDO::FETCH_ASSOC)) {
-            if (!isset($mod_thread)) {
-                $mod_thread = new Thread($post, '?/', $mod);
-            } else {
-                if ($post['files'])
-                    $num_images += $post['num_files'];
-                $mod_thread->add(new Post($post, '?/', $mod));
-            }
-        }
-        
-        $mod_thread->posts = array_reverse($mod_thread->posts);
-        
-        if ($query->rowCount() == $config['noko50_count']+1) {
-            $count = prepare("SELECT COUNT(`id`) as `num` FROM ``posts`` WHERE `board` = :board AND `thread` = :thread UNION ALL
-                          SELECT SUM(`num_files`) FROM ``posts`` WHERE `board` = :board AND `files` IS NOT NULL AND `thread` = :thread");
-            $count->bindValue(':board', $board['uri']);
-            $count->bindValue(':thread', $id, PDO::PARAM_INT);
-            $count->execute() or error(db_error($count));
-
-            $c = $count->fetch();
-            $mod_thread->omitted = $c['num'] - $config['noko50_count'];
-
-            $c = $count->fetch();
-            $mod_thread->omitted_images = $c['num'] - $num_images;
-        }
-        
-        $mod_options = [
-            'board' => $board,
-            'thread' => $mod_thread,
-            'body' => $mod_thread->build(false, true),
-            'config' => $config,
-            'id' => $id,
-            'mod' => $mod,
-            'hasnoko50' => $hasnoko50,
-            'isnoko50' => true,
-            'boardlist' => createBoardlist($mod),
-            'return' => '?/' . sprintf($config['board_path'], $board['channel'], $board['uri']) . $config['file_index']
-        ];
-        if ($mod) {
-            $mod_options['pm'] = create_pm_header();
-        }
-
-        $body = Element($config['file_thread'], $mod_options);
+        $body = renderThreadHtml($thread, null, $id, true, true);
     }
 
     if ($return) {
