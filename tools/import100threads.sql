@@ -18,7 +18,7 @@ SELECT
     CONCAT('This is the content for thread number ', n) AS body_nomarkup,
     UNIX_TIMESTAMP() - (n * 60) AS time,
     UNIX_TIMESTAMP() - (n * 60) AS bump,
-    DATE_FORMAT(NOW(), '%Y/%m/%d/') AS live_date_path, -- Generates e.g., 2026/05/03/
+    DATE_FORMAT(NOW(), '%Y/%m/%d') AS live_date_path, -- Generates e.g., 2026/05/03
     'password123' AS password,
     '127.0.0.1' AS ip
 FROM thread_generator;
