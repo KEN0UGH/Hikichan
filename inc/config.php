@@ -1199,8 +1199,8 @@
 			'<iframe style="float: left; margin: 10px 20px;" width="%%tb_width%%" height="%%tb_height%%" frameborder="0" src="https://www.dailymotion.com/embed/video/$2" allowfullscreen></iframe>'
 		),
 		array(
-			'/^https?:\/\/(www\.)?rumble\.com\/embed\/([a-zA-Z0-9]+)(\/\?[^\'"<>]*)?$/i',
-			'<iframe class="rumble" width="%%tb_width%%" height="%%tb_height%%" src="https://rumble.com/embed/$2/" frameborder="0" allowfullscreen></iframe>'
+			'/^https?:\/\/(www\.)?rumble\.com\/(v[a-zA-Z0-9]+|embed\/[a-zA-Z0-9]+)[-.\w]*(\?[^\'"<>]*)?$/i',
+			'<iframe class="rumble" width="%%tb_width%%" height="%%tb_height%%" src="https://rumble.com/embed/${2}/" frameborder="0" allowfullscreen></iframe>'
 		),
 		array(
 			'/^https?:\/\/(www\.)?bitchute\.com\/(?:video|embed)\/([a-zA-Z0-9]+)(\/)?(\?[^\'"<>]*)?$/i',
@@ -1217,6 +1217,10 @@
 		array(
 			'/^https?:\/\/(www\.)?tiktok\.com\/@([a-zA-Z0-9_.]+)\/video\/([0-9]+)(\?[^\'"<>]*)?$/i',
 			'<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@$2/video/$3" data-video-id="$3" style="max-width: %%tb_width%%px;min-width: 325px;"><section></section></blockquote><script async src="https://www.tiktok.com/embed.js"></script>'
+		),
+		array(
+			'/^https?:\/\/(www\.)?(twitter\.com|x\.com)\/(\w+)\/status\/(\d+)(\?[^\'"<>]*)?$/i',
+			'<blockquote class="twitter-tweet" style="max-width: %%tb_width%%px;"><a href="https://$2/$3/status/$4"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>'
 		),
 		/*
   		//Both TikTok and Instagram are commented out since they contain some extra scripting you might not want natively on your website.
