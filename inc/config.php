@@ -1603,6 +1603,8 @@
 	$config['mod'] = [
 		// Limit how many bans can be removed via the ban list. Set to false (or zero) for no limit.
 		'unban_limit' => false,
+		// Allow new user registration. Set to false to disable registration.
+		'enable_registration' => false,
 		// Whether or not to lock moderator sessions to IP addresses. This makes cookie theft less effective.
 		'lock_ip' => true,
 		// The page that is first shown when a moderator logs in. Defaults to the dashboard (?/).

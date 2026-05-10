@@ -101,6 +101,8 @@ function mod_login(Context $ctx, $redirect = false) {
     if (isset($_POST['username']))
         $args['username'] = $_POST['username'];
 
+    $args['enable_registration'] = $config['mod']['enable_registration'];
+
     mod_page(_('Login'), $config['file_mod_login'], $args, $mod);
 }
 
@@ -109,6 +111,11 @@ function mod_register(Context $ctx, $redirect = false) {
     global $mod;
     $config = $ctx->get('config');
     $args = [];
+
+    // Check if registration is enabled
+    if (!$config['mod']['enable_registration']) {
+        error(_('Registration is currently disabled.'));
+    }
 
     // Check if CAPTCHA is enabled in the config
     if ($config['captcha']['provider'] === 'hcaptcha') {
