@@ -4342,6 +4342,14 @@ function delete_page_base(Context $ctx, $page = '', $board = false) {
     }
 }
 
+function mod_delete_page(Context $ctx, $page) {
+    delete_page_base($ctx, $page, false);
+}
+
+function mod_delete_page_board(Context $ctx, $page, $channel, $board) {
+    delete_page_base($ctx, $page, $board);
+}
+
 function mod_edit_page(Context $ctx, $id) {
     global $mod, $board;
     $config = $ctx->get('config');
