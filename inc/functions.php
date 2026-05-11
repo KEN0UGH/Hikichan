@@ -514,6 +514,11 @@ function deleteBoard($board_uri) {
     $query->bindValue(':board', $board_uri);
     $query->execute() or error(db_error($query));
     
+    // Delete board-specific pages
+    $query = prepare("DELETE FROM ``pages`` WHERE `board` = :board");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+    
     // Calculate the board directory
     $channel = isset($board['channel']) ? $board['channel'] : max(1, ceil($board['id'] / $config['boards_per_channel']));
     $board_dir = sprintf($config['board_path'], $channel, $board_uri);
