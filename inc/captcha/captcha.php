@@ -1,5 +1,7 @@
 <?php
-session_start();
+chdir(__DIR__ . '/../../');
+require_once __DIR__ . '/../bootstrap.php';
+vichan_db_session_start();
 
 // Prevent caching
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');

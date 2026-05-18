@@ -56,7 +56,7 @@ function mod_login(Context $ctx, $redirect = false) {
         $hcaptcha_sitekey = $config['captcha']['hcaptcha']['sitekey'];
         $args['hcaptcha_sitekey'] = $hcaptcha_sitekey;
     } elseif ($config['captcha']['provider'] === 'native') {
-        session_start(); // Start session for native CAPTCHA
+        vichan_db_session_start(); // Start session for native CAPTCHA
     }
 
     if (isset($_POST['login'])) {
@@ -123,7 +123,7 @@ function mod_register(Context $ctx, $redirect = false) {
         $hcaptcha_sitekey = $config['captcha']['hcaptcha']['sitekey'];
         $args['hcaptcha_sitekey'] = $hcaptcha_sitekey;
     } elseif ($config['captcha']['provider'] === 'native') {
-        session_start(); // Start session for native CAPTCHA
+        vichan_db_session_start(); // Start session for native CAPTCHA
     }
 
     if (isset($_POST['register'])) {
@@ -3297,7 +3297,7 @@ function mod_rebuild(Context $ctx) {
     if (!hasPermission($config['mod']['rebuild']))
         error($config['error']['noaccess']);
 
-    session_start();
+    vichan_db_session_start();
 
     // Helper: batch rebuild archive index pages for a board
     $rebuild_archive_batches = function($board_uri, &$log, $batch_size) {

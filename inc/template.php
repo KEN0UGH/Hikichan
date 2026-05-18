@@ -3,7 +3,7 @@
 /*
  *  Copyright (c) 2010-2013 Tinyboard Development Group
  */
-require_once 'inc/bootstrap.php';
+require_once __DIR__ . '/bootstrap.php';
 defined('TINYBOARD') or exit;
 
 $twig = false;

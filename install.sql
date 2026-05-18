@@ -227,6 +227,19 @@ CREATE TABLE IF NOT EXISTS `modlogs` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `sessions`
+--
+
+CREATE TABLE IF NOT EXISTS `sessions` (
+  `session_id` char(40) NOT NULL,
+  `session_data` longtext NOT NULL,
+  `last_access` int(11) NOT NULL,
+  PRIMARY KEY (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `mods`
 --
 

@@ -253,7 +253,7 @@ function delete_cyclical_posts(string $boardUri, int $threadId, int $cycleLimit)
 function verify_captcha() {
     global $config;
 
-    session_start();
+    vichan_db_session_start();
 
     if (!isset($_POST['captcha']) || $_POST['captcha'] === '') {
         error($config['error']['captcha']);
