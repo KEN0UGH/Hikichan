@@ -1935,6 +1935,16 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
             error($config['error']['noboard']);
         }
 
+        // Allocate a new board ID for the target board
+        $query = prepare("INSERT INTO `board_counters` (`board`, `last_board_id`) VALUES (:board, 1)
+            ON DUPLICATE KEY UPDATE `last_board_id` = `last_board_id` + 1");
+        $query->bindValue(':board', $board['uri']);
+        $query->execute() or error(db_error($query));
+        $query = prepare("SELECT last_board_id FROM board_counters WHERE board = :board");
+        $query->bindValue(':board', $board['uri']);
+        $query->execute() or error(db_error($query));
+        $post['board_id'] = (int)$query->fetchColumn();
+
         // Create the new post
         $newID = post($post);
 
@@ -2106,6 +2116,16 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
             error($config['error']['noboard']);
         }
 
+        // Allocate a new board ID for the target board
+        $query = prepare("INSERT INTO `board_counters` (`board`, `last_board_id`) VALUES (:board, 1)
+            ON DUPLICATE KEY UPDATE `last_board_id` = `last_board_id` + 1");
+        $query->bindValue(':board', $board['uri']);
+        $query->execute() or error(db_error($query));
+        $query = prepare("SELECT last_board_id FROM board_counters WHERE board = :board");
+        $query->bindValue(':board', $board['uri']);
+        $query->execute() or error(db_error($query));
+        $post['board_id'] = (int)$query->fetchColumn();
+
         // Create the new thread
         $newID = post($post);
         error_log("mod_move: Created new thread on target board with newID=$newID");
@@ -2209,6 +2229,16 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
                     }
                 }
             }
+            // Allocate a new board ID for this reply on the target board
+            $query = prepare("INSERT INTO `board_counters` (`board`, `last_board_id`) VALUES (:board, 1)
+                ON DUPLICATE KEY UPDATE `last_board_id` = `last_board_id` + 1");
+            $query->bindValue(':board', $board['uri']);
+            $query->execute() or error(db_error($query));
+            $query = prepare("SELECT last_board_id FROM board_counters WHERE board = :board");
+            $query->bindValue(':board', $board['uri']);
+            $query->execute() or error(db_error($query));
+            $reply['board_id'] = (int)$query->fetchColumn();
+
             // Insert reply
             $newIDs[$reply['id']] = $newPostID = post($reply);
             error_log("mod_move: Posted reply with new ID=$newPostID");
