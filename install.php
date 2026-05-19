@@ -186,7 +186,7 @@ function create_config_from_array(&$instance_config, &$array, $prefix = '') {
     }
 }
 
-vichan_db_session_start();
+session_start();
 
 if ($step == 0) {
     $page['body'] = '
