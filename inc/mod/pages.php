@@ -2208,7 +2208,7 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
             if ($reply['has_file']) {
                 foreach ($reply['files'] as $i => &$file) {
                     if ($file['file'] !== 'deleted') {
-                        $target_img_path = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['img'] . $reply['live_date_path'] . '/' . $file['file'];
+                        $target_img_path = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['img'] . $file['file'];
                         $target_img_dir = dirname($target_img_path);
                         if (!is_dir($target_img_dir)) {
                             mkdir($target_img_dir, 0775, true);
@@ -2217,7 +2217,7 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
                             error_log("mod_move: Failed to move/copy reply image: {$file['file_path']} -> $target_img_path");
                         }
                         if (isset($file['thumb']) && !in_array($file['thumb'], ['spoiler', 'deleted', 'file'])) {
-                            $target_thumb_path = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['thumb'] . $reply['live_date_path'] . '/' . $file['thumb'];
+                            $target_thumb_path = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['thumb'] . $file['thumb'];
                             $target_thumb_dir = dirname($target_thumb_path);
                             if (!is_dir($target_thumb_dir)) {
                                 mkdir($target_thumb_dir, 0775, true);
@@ -2269,6 +2269,61 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
         clean();
         buildIndex();
         Vichan\Functions\Theme\rebuild_themes('post', $targetBoard);
+
+        // Remap in-post citations (>>123) for moved posts to their new IDs
+        // and rebuild their markup + cites entries.
+        try {
+            openBoard($targetBoard);
+
+            foreach ($newIDs as $old_id => $new_id) {
+                // Fetch raw markup
+                $query = prepare('SELECT `body_nomarkup` FROM ``posts`` WHERE `board` = :board AND `id` = :id');
+                $query->bindValue(':board', $targetBoard);
+                $query->bindValue(':id', $new_id, PDO::PARAM_INT);
+                $query->execute() or error(db_error($query));
+                $row = $query->fetch(PDO::FETCH_ASSOC);
+                if (!$row || !$row['body_nomarkup']) continue;
+
+                $body_nomarkup = $row['body_nomarkup'];
+
+                // Replace any >>old_id occurrences that refer to moved posts
+                foreach ($newIDs as $o => $n) {
+                    $pattern = '/(^|[\s(])>>' . preg_quote($o, '/') . '((?=[\s,.)?!])|$)/m';
+                    $replacement = '\\1>>' . $n . '\\2';
+                    $body_nomarkup = preg_replace($pattern, $replacement, $body_nomarkup);
+                }
+
+                // Update body_nomarkup in DB
+                $u = prepare('UPDATE ``posts`` SET `body_nomarkup` = :body WHERE `board` = :board AND `id` = :id');
+                $u->bindValue(':body', $body_nomarkup);
+                $u->bindValue(':board', $targetBoard);
+                $u->bindValue(':id', $new_id, PDO::PARAM_INT);
+                $u->execute() or error(db_error($u));
+
+                // Compute tracked cites based on the updated markup
+                $tmp = $body_nomarkup;
+                $tracked = markup($tmp, true);
+
+                // Remove old cites entries for this post and insert updated ones
+                $d = prepare('DELETE FROM ``cites`` WHERE `board` = :board AND `post` = :post');
+                $d->bindValue(':board', $targetBoard);
+                $d->bindValue(':post', $new_id, PDO::PARAM_INT);
+                $d->execute() or error(db_error($d));
+
+                if (!empty($tracked)) {
+                    $insert_rows = array();
+                    foreach ($tracked as $cite) {
+                        $insert_rows[] = '(' . $pdo->quote($targetBoard) . ', ' . (int)$new_id . ', ' . $pdo->quote($cite[0]) . ', ' . (int)$cite[1] . ')';
+                    }
+                    query('INSERT INTO ``cites`` VALUES ' . implode(', ', $insert_rows)) or error(db_error());
+                }
+
+                // Rebuild the post HTML from the updated body_nomarkup
+                rebuildPost($new_id);
+            }
+        } catch (Exception $e) {
+            error_log('mod_move: Failed to remap citations: ' . $e->getMessage());
+        }
 
         $newboard = $board;
         error_log("mod_move: New board context set to " . print_r($newboard, true));
