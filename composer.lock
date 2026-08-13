@@ -567,7 +567,7 @@
             },
             "require": {
                 "php": "^7.2 || ^8.0",
-                "twig/twig": "^1.42.3|^2.0|^3.0"
+                "twig/twig": "^1.42.3|^2.0|^3.8"
             },
             "require-dev": {
                 "phpmyadmin/coding-standard": "^3.0.0",
@@ -834,7 +834,7 @@
         },
         {
             "name": "twig/twig",
-            "version": "v2.16.1",
+            "version": "v3.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/twigphp/Twig.git",
