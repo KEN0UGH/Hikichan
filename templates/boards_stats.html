@@ -21,7 +21,7 @@
         <tbody>
             {% for board in boards %}
                 <tr>
-                    <td class="board-uri"><a href="{{ config.root }}{{ board.uri }}">/{{ board.uri }}/</a></td>
+                    <td class="board-uri"><a href="{{ config.root }}{{ board.dir }}index.html">/{{ board.uri }}/</a></td>
                     <td class="board-title">
                         {{ board.title }}
                         {% if board.subtitle %}

@@ -76,8 +76,9 @@ $boards = [];
 foreach ($boards_raw as $board) {
     $boards[] = [
         'uri' => $board['uri'],
-        // This builds the "channel/1/" part of your URL
-        'dir' => 'channel/' . $board['channel'] . '/',
+        'channel' => $board['channel'],
+        // This builds the full path using config.board_path
+        'dir' => sprintf($config['board_path'], $board['channel'], $board['uri']),
         'title' => $board['title'],
         'subtitle' => $board['subtitle'],
         'posts' => number_format($board['total_posts']),

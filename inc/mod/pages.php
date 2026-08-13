@@ -1900,6 +1900,14 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
     if (isset($_POST['board'])) {
         $targetBoard = basename($_POST['board']); // Extract the target board URI
 
+        $target_query = prepare('SELECT * FROM ``boards`` WHERE `uri` = :uri');
+        $target_query->bindValue(':uri', $targetBoard);
+        $target_query->execute() or error(db_error($target_query));
+        $target_board_info = $target_query->fetch(PDO::FETCH_ASSOC);
+        if (!$target_board_info) {
+            error($config['error']['noboard']);
+        }
+
         if ($_POST['target_thread']) {
             $query = prepare('SELECT * FROM ``posts`` WHERE `board` = :board AND `id` = :id');
             $query->bindValue(':board', $targetBoard);
@@ -1961,10 +1969,10 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
                 if ($file['file'] === 'deleted') {
                     continue;
                 }
-                $target_img_path = sprintf($config['board_path'], $board_info['channel'], $targetBoard) . $config['dir']['img'] . $file['file'];
+                $target_img_path = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['img'] . $file['file'];
                 @rename($file['file_path'], $target_img_path);
                 if (isset($file['thumb']) && $file['thumb'] && $file['thumb'] !== 'deleted' && $file['thumb'] !== 'spoiler') {
-                    $target_thumb_path = sprintf($config['board_path'], $board_info['channel'], $targetBoard) . $config['dir']['thumb'] . $file['thumb'];
+                    $target_thumb_path = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['thumb'] . $file['thumb'];
                     @rename($file['thumb_path'], $target_thumb_path);
                 }
             }
@@ -2006,7 +2014,7 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
             $thread_post = $query->fetch(PDO::FETCH_ASSOC);
 
             // Redirect to the thread, anchored to the reply
-            header('Location: ?/' . sprintf($config['board_path'], $board_info['channel'], $targetBoard) . $config['dir']['res'] . $thread_post['live_date_path'] . '/' . link_for($thread_post) . '#' . $newID, true, $config['redirect_http']);
+            header('Location: ?/' . sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['res'] . $thread_post['live_date_path'] . '/' . link_for($thread_post) . '#' . $newID, true, $config['redirect_http']);
         } else {
             // If this is a new thread, redirect to it
             $query = prepare('SELECT * FROM ``posts`` WHERE `board` = :board AND `id` = :id');
@@ -2015,7 +2023,7 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
             $query->execute() or error(db_error($query));
             $thread_post = $query->fetch(PDO::FETCH_ASSOC);
 
-            header('Location: ?/' . sprintf($config['board_path'], $board_info['channel'], $targetBoard) . $config['dir']['res'] . $thread_post['live_date_path'] . '/' . link_for($thread_post) . '#' . $newID, true, $config['redirect_http']);
+            header('Location: ?/' . sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['res'] . $thread_post['live_date_path'] . '/' . link_for($thread_post) . '#' . $newID, true, $config['redirect_http']);
         }
     } else {
         $boards = listBoards();

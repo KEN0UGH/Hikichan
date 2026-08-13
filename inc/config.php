@@ -861,6 +861,7 @@
 	$config['allowed_ext_files'][] = 'mp4';
 	$config['allowed_ext_files'][] = 'webm';
 	$config['allowed_ext_files'][] = 'mp3';
+	$config['allowed_ext_files'][] = 'json';
 
 
 	// An alternative function for generating image filenames, instead of the default UNIX timestamp.
