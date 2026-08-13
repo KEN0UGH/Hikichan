@@ -13,9 +13,9 @@ function load_twig() {
 
 	$cache_dir = "{$config['dir']['template']}/cache/";
 
-	$loader = new Twig\Loader\FilesystemLoader($config['dir']['template']);
+	$loader = new \Twig\Loader\FilesystemLoader($config['dir']['template']);
 	$loader->setPaths($config['dir']['template']);
-	$twig = new Twig\Environment($loader, array(
+	$twig = new \Twig\Environment($loader, array(
 		'autoescape' => false,
 		'cache' => is_writable('templates/') || (is_dir($cache_dir) && is_writable($cache_dir)) ?
 			new TinyboardTwigCache($cache_dir) : false,
@@ -69,7 +69,7 @@ function Element($templateFile, array $options) {
 	}
 }
 
-class TinyboardTwigCache extends Twig\Cache\FilesystemCache {
+class TinyboardTwigCache extends \Twig\Cache\FilesystemCache {
 	private string $directory;
 
 	public function __construct(string $directory) {
@@ -95,66 +95,56 @@ class TinyboardTwigCache extends Twig\Cache\FilesystemCache {
 	}
 }
 
-class Tinyboard extends Twig\Extension\AbstractExtension
+class Tinyboard extends \Twig\Extension\AbstractExtension
 {
 	/**
 	* Returns a list of filters to add to the existing list.
 	*
-	* @return array An array of filters
+	* @return \Twig\TwigFilter[] An array of filters
 	*/
-	public function getFilters()
+	public function getFilters(): array
 	{
 		return array(
-			new Twig\TwigFilter('filesize', 'format_bytes'),
-			new Twig\TwigFilter('truncate', 'twig_truncate_filter'),
-			new Twig\TwigFilter('truncate_body', 'truncate'),
-			new Twig\TwigFilter('truncate_filename', 'twig_filename_truncate_filter'),
-			new Twig\TwigFilter('extension', 'twig_extension_filter'),
-			new Twig\TwigFilter('sprintf', 'sprintf'),
-			new Twig\TwigFilter('capcode', 'capcode'),
-			new Twig\TwigFilter('remove_modifiers', 'remove_modifiers'),
-			new Twig\TwigFilter('hasPermission', 'twig_hasPermission_filter'),
-			new Twig\TwigFilter('date', 'twig_date_filter'),
-			new Twig\TwigFilter('poster_id', 'poster_id'),
-			new Twig\TwigFilter('count', 'count'),
-			new Twig\TwigFilter('ago', 'Vichan\Functions\Format\ago'),
-			new Twig\TwigFilter('until', 'Vichan\Functions\Format\until'),
-			new Twig\TwigFilter('push', 'twig_push_filter'),
-			new Twig\TwigFilter('bidi_cleanup', 'bidi_cleanup'),
-			new Twig\TwigFilter('addslashes', 'addslashes'),
-			new Twig\TwigFilter('cloak_ip', 'cloak_ip'),
-			new Twig\TwigFilter('cloak_mask', 'cloak_mask'),
+			new \Twig\TwigFilter('filesize', 'format_bytes'),
+			new \Twig\TwigFilter('truncate', 'twig_truncate_filter'),
+			new \Twig\TwigFilter('truncate_body', 'truncate'),
+			new \Twig\TwigFilter('truncate_filename', 'twig_filename_truncate_filter'),
+			new \Twig\TwigFilter('extension', 'twig_extension_filter'),
+			new \Twig\TwigFilter('sprintf', 'sprintf'),
+			new \Twig\TwigFilter('capcode', 'capcode'),
+			new \Twig\TwigFilter('remove_modifiers', 'remove_modifiers'),
+			new \Twig\TwigFilter('hasPermission', 'twig_hasPermission_filter'),
+			new \Twig\TwigFilter('date', 'twig_date_filter'),
+			new \Twig\TwigFilter('poster_id', 'poster_id'),
+			new \Twig\TwigFilter('count', 'count'),
+			new \Twig\TwigFilter('ago', 'Vichan\Functions\Format\ago'),
+			new \Twig\TwigFilter('until', 'Vichan\Functions\Format\until'),
+			new \Twig\TwigFilter('push', 'twig_push_filter'),
+			new \Twig\TwigFilter('bidi_cleanup', 'bidi_cleanup'),
+			new \Twig\TwigFilter('addslashes', 'addslashes'),
+			new \Twig\TwigFilter('cloak_ip', 'cloak_ip'),
+			new \Twig\TwigFilter('cloak_mask', 'cloak_mask'),
 		);
 	}
 
 	/**
 	* Returns a list of functions to add to the existing list.
 	*
-	* @return array An array of filters
+	* @return \Twig\TwigFunction[] An array of functions
 	*/
-	public function getFunctions()
+	public function getFunctions(): array
 	{
 		return array(
-			new Twig\TwigFunction('time', 'time'),
-			new Twig\TwigFunction('floor', 'floor'),
-			new Twig\TwigFunction('hiddenInputs', 'hiddenInputs'),
-			new Twig\TwigFunction('hiddenInputsHash', 'hiddenInputsHash'),
-			new Twig\TwigFunction('ratio', 'twig_ratio_function'),
-			new Twig\TwigFunction('secure_link_confirm', 'twig_secure_link_confirm'),
-			new Twig\TwigFunction('secure_link', 'twig_secure_link'),
-			new Twig\TwigFunction('link_for', 'link_for'),
-			new Twig\TwigFunction('check_container', 'twig_check_container')
+			new \Twig\TwigFunction('time', 'time'),
+			new \Twig\TwigFunction('floor', 'floor'),
+			new \Twig\TwigFunction('hiddenInputs', 'hiddenInputs'),
+			new \Twig\TwigFunction('hiddenInputsHash', 'hiddenInputsHash'),
+			new \Twig\TwigFunction('ratio', 'twig_ratio_function'),
+			new \Twig\TwigFunction('secure_link_confirm', 'twig_secure_link_confirm'),
+			new \Twig\TwigFunction('secure_link', 'twig_secure_link'),
+			new \Twig\TwigFunction('link_for', 'link_for'),
+			new \Twig\TwigFunction('check_container', 'twig_check_container')
 		);
-	}
-
-	/**
-	* Returns the name of the extension.
-	*
-	* @return string The extension name
-	*/
-	public function getName()
-	{
-		return 'tinyboard';
 	}
 }
 

@@ -2325,6 +2325,41 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
             error_log('mod_move: Failed to remap citations: ' . $e->getMessage());
         }
 
+        // Update cites table for posts that cite the moved thread
+        // This ensures that citations to the moved thread point to the new board
+        try {
+            foreach ($newIDs as $old_id => $new_id) {
+                // Find all cites where this post is the target
+                $query = prepare('SELECT `board`, `post` FROM ``cites`` WHERE `target_board` = :origin_board AND `target` = :old_id');
+                $query->bindValue(':origin_board', $originBoardURI);
+                $query->bindValue(':old_id', $old_id, PDO::PARAM_INT);
+                $query->execute() or error(db_error($query));
+                
+                $citing_posts = $query->fetchAll(PDO::FETCH_ASSOC);
+                
+                if (!empty($citing_posts)) {
+                    // Update the cites table to point to the new board and post ID
+                    $update = prepare('UPDATE ``cites`` SET `target_board` = :target_board, `target` = :new_id WHERE `target_board` = :origin_board AND `target` = :old_id');
+                    $update->bindValue(':target_board', $targetBoard);
+                    $update->bindValue(':new_id', $new_id, PDO::PARAM_INT);
+                    $update->bindValue(':origin_board', $originBoardURI);
+                    $update->bindValue(':old_id', $old_id, PDO::PARAM_INT);
+                    $update->execute() or error(db_error($update));
+                    
+                    error_log("mod_move: Updated " . count($citing_posts) . " cites for post $old_id -> $new_id on board $originBoardURI -> $targetBoard");
+                    
+                    // Rebuild the posts that cite this thread so their links get updated
+                    foreach ($citing_posts as $citing_post) {
+                        openBoard($citing_post['board']);
+                        rebuildPost($citing_post['post']);
+                        error_log("mod_move: Rebuilt post {$citing_post['post']} on board {$citing_post['board']} to update its citation links");
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            error_log('mod_move: Failed to update external cites: ' . $e->getMessage());
+        }
+
         $newboard = $board;
         error_log("mod_move: New board context set to " . print_r($newboard, true));
 
