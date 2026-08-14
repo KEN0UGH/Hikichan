@@ -1868,6 +1868,21 @@ function mod_bumplock(Context $ctx, $channel, $board_uri, $unbumplock, $post) {
     header('Location: ?/' . sprintf($config['board_path'], $board_info['channel'], $board_uri) . $config['file_index'], true, $config['redirect_http']);
 }
 
+function allocate_board_id_for_board($board_uri) {
+    global $config, $pdo;
+
+    $query = prepare("INSERT INTO `board_counters` (`board`, `last_board_id`) VALUES (:board, 1)
+        ON DUPLICATE KEY UPDATE `last_board_id` = `last_board_id` + 1");
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+
+    $query = prepare('SELECT `last_board_id` FROM `board_counters` WHERE `board` = :board');
+    $query->bindValue(':board', $board_uri);
+    $query->execute() or error(db_error($query));
+
+    return (int)$query->fetchColumn();
+}
+
 function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
     global $board, $config, $mod;
 
@@ -1959,15 +1974,8 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
             error($config['error']['noboard']);
         }
 
-        // Allocate a new board ID for the target board
-        $query = prepare("INSERT INTO `board_counters` (`board`, `last_board_id`) VALUES (:board, 1)
-            ON DUPLICATE KEY UPDATE `last_board_id` = `last_board_id` + 1");
-        $query->bindValue(':board', $board['uri']);
-        $query->execute() or error(db_error($query));
-        $query = prepare("SELECT last_board_id FROM board_counters WHERE board = :board");
-        $query->bindValue(':board', $board['uri']);
-        $query->execute() or error(db_error($query));
-        $post['board_id'] = (int)$query->fetchColumn();
+        // Allocate a new board ID for the destination board, not the current board context.
+        $post['board_id'] = allocate_board_id_for_board($targetBoard);
 
         // Create the new post
         $newID = post($post);
@@ -2157,15 +2165,11 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
             error($config['error']['noboard']);
         }
 
-        // Allocate a new board ID for the target board
-        $query = prepare("INSERT INTO `board_counters` (`board`, `last_board_id`) VALUES (:board, 1)
-            ON DUPLICATE KEY UPDATE `last_board_id` = `last_board_id` + 1");
-        $query->bindValue(':board', $board['uri']);
-        $query->execute() or error(db_error($query));
-        $query = prepare("SELECT last_board_id FROM board_counters WHERE board = :board");
-        $query->bindValue(':board', $board['uri']);
-        $query->execute() or error(db_error($query));
-        $post['board_id'] = (int)$query->fetchColumn();
+        // Allocate a new board ID for the destination board, not the current board context.
+        $original_board_id = (int)$post['board_id'];
+        $post['board_id'] = allocate_board_id_for_board($targetBoard);
+        $old_board_ids = [$postID => $original_board_id];
+        $new_board_ids = [$postID => (int)$post['board_id']];
 
         // Create the new thread
         $newID = post($post);
@@ -2239,8 +2243,6 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
         }
 
         $newIDs = [$postID => $newID];
-        $old_board_ids = [$postID => (int)$post['board_id']];
-        $new_board_ids = [$postID => (int)$post['board_id']];
 
         openBoard($targetBoard);
 
@@ -2275,14 +2277,7 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
             $old_board_ids[$reply['id']] = (int)$reply['board_id'];
 
             // Allocate a new board ID for this reply on the target board
-            $query = prepare("INSERT INTO `board_counters` (`board`, `last_board_id`) VALUES (:board, 1)
-                ON DUPLICATE KEY UPDATE `last_board_id` = `last_board_id` + 1");
-            $query->bindValue(':board', $board['uri']);
-            $query->execute() or error(db_error($query));
-            $query = prepare("SELECT last_board_id FROM board_counters WHERE board = :board");
-            $query->bindValue(':board', $board['uri']);
-            $query->execute() or error(db_error($query));
-            $reply['board_id'] = (int)$query->fetchColumn();
+            $reply['board_id'] = allocate_board_id_for_board($targetBoard);
             $new_board_ids[$reply['id']] = (int)$reply['board_id'];
 
             // Insert reply
