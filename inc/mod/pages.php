@@ -1915,8 +1915,10 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
             $query->execute() or error(db_error($query)); // If it fails, thread probably does not exist
             $post['op'] = false;
             $post['thread'] = $_POST['target_thread'];
+            $post['live_date_path'] = $query->fetch(PDO::FETCH_ASSOC)['live_date_path'];
         } else {
             $post['op'] = true;
+            $post['live_date_path'] = date('Y/m/d');
         }
 
         // Prepare file paths with live_date_path
@@ -1931,6 +1933,10 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
                 if (isset($file['thumb']) && $file['thumb'] && $file['thumb'] !== 'deleted') {
                     $file['thumb_path'] = sprintf($config['board_path'], $board_info['channel'], $board_uri) . $config['dir']['thumb'] . $file['thumb'];
                 }
+                $file['file'] = $post['live_date_path'] . '/' . basename($file['file']);
+                if (isset($file['thumb']) && $file['thumb'] && $file['thumb'] !== 'deleted' && $file['thumb'] !== 'spoiler') {
+                    $file['thumb'] = $post['live_date_path'] . '/' . basename($file['thumb']);
+                }
             }
         } else {
             $post['has_file'] = false;
@@ -1938,6 +1944,16 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
 
         // Allow thread to keep its same traits (stickied, locked, etc.)
         $post['mod'] = true;
+
+        // Moving a reply out of its original thread leaves local >>N references behind
+        // unless they are explicitly stripped. Those links have no valid target in the
+        // destination thread and should not be copied over.
+        if (isset($post['body_nomarkup'])) {
+            $post['body_nomarkup'] = remove_moved_reply_cites($post['body_nomarkup']);
+        }
+        if (isset($post['body'])) {
+            $post['body'] = remove_moved_reply_cites($post['body']);
+        }
 
         if (!openBoard($targetBoard)) {
             error($config['error']['noboard']);
@@ -1962,6 +1978,19 @@ function mod_move_reply(Context $ctx, $channel, $board_uri, $postID) {
         $query->bindValue(':id', $newID);
         $query->execute() or error(db_error($query));
         $new_live_date_path = $query->fetchColumn();
+
+        $target_res_dir = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['res'] . $new_live_date_path;
+        if (!is_dir($target_res_dir)) {
+            mkdir($target_res_dir, 0775, true);
+        }
+        $target_img_dir = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['img'] . $new_live_date_path;
+        if (!is_dir($target_img_dir)) {
+            mkdir($target_img_dir, 0775, true);
+        }
+        $target_thumb_dir = sprintf($config['board_path'], $target_board_info['channel'], $targetBoard) . $config['dir']['thumb'] . $new_live_date_path;
+        if (!is_dir($target_thumb_dir)) {
+            mkdir($target_thumb_dir, 0775, true);
+        }
 
         // Move files to the new board and live_date_path
         if ($post['has_file']) {
@@ -2112,6 +2141,10 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
                 }
                 $file['file_path'] = sprintf($config['board_path'], $origin_board_info['channel'], $originBoardURI) . $config['dir']['img'] . $file['file'];
                 $file['thumb_path'] = sprintf($config['board_path'], $origin_board_info['channel'], $originBoardURI) . $config['dir']['thumb'] . $file['thumb'];
+                $file['file'] = $post['live_date_path'] . '/' . basename($file['file']);
+                if (isset($file['thumb']) && $file['thumb'] && $file['thumb'] !== 'deleted' && $file['thumb'] !== 'spoiler') {
+                    $file['thumb'] = $post['live_date_path'] . '/' . basename($file['thumb']);
+                }
                 error_log("mod_move: OP file path={$file['file_path']}, thumb path={$file['thumb_path']}");
             }
         } else {
@@ -2206,6 +2239,8 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
         }
 
         $newIDs = [$postID => $newID];
+        $old_board_ids = [$postID => (int)$post['board_id']];
+        $new_board_ids = [$postID => (int)$post['board_id']];
 
         openBoard($targetBoard);
 
@@ -2237,6 +2272,8 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
                     }
                 }
             }
+            $old_board_ids[$reply['id']] = (int)$reply['board_id'];
+
             // Allocate a new board ID for this reply on the target board
             $query = prepare("INSERT INTO `board_counters` (`board`, `last_board_id`) VALUES (:board, 1)
                 ON DUPLICATE KEY UPDATE `last_board_id` = `last_board_id` + 1");
@@ -2246,6 +2283,7 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
             $query->bindValue(':board', $board['uri']);
             $query->execute() or error(db_error($query));
             $reply['board_id'] = (int)$query->fetchColumn();
+            $new_board_ids[$reply['id']] = (int)$reply['board_id'];
 
             // Insert reply
             $newIDs[$reply['id']] = $newPostID = post($reply);
@@ -2294,12 +2332,7 @@ function mod_move(Context $ctx, $channel, $originBoard, $postID) {
 
                 $body_nomarkup = $row['body_nomarkup'];
 
-                // Replace any >>old_id occurrences that refer to moved posts
-                foreach ($newIDs as $o => $n) {
-                    $pattern = '/(^|[\s(])>>' . preg_quote($o, '/') . '((?=[\s,.)?!])|$)/m';
-                    $replacement = '\\1>>' . $n . '\\2';
-                    $body_nomarkup = preg_replace($pattern, $replacement, $body_nomarkup);
-                }
+                $body_nomarkup = remap_moved_thread_cites($body_nomarkup, array_combine(array_values($old_board_ids), array_values($new_board_ids)), $originBoardURI, $targetBoard);
 
                 // Update body_nomarkup in DB
                 $u = prepare('UPDATE ``posts`` SET `body_nomarkup` = :body WHERE `board` = :board AND `id` = :id');

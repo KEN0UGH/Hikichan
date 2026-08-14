@@ -2093,6 +2093,34 @@ function remove_modifiers($body) {
 	return $body ? preg_replace('@<tinyboard ([\w\s]+)>(.+?)</tinyboard>@usm', '', $body) : null;
 }
 
+function remove_moved_reply_cites($body) {
+    if (empty($body)) {
+        return $body;
+    }
+
+    $body = preg_replace('/(^|[\s(])>>\d+((?=[\s,.)?!])|$)/m', '$1', $body);
+    $body = preg_replace('/<a[^>]*>\s*&gt;&gt;\d+\s*<\/a>/i', '', $body);
+
+    return $body;
+}
+
+function remap_moved_thread_cites($body, $old_to_new_board_ids, $source_board, $target_board) {
+    if (empty($body) || empty($old_to_new_board_ids)) {
+        return $body;
+    }
+
+    foreach ($old_to_new_board_ids as $old_board_id => $new_board_id) {
+        if ($old_board_id === null || $new_board_id === null || $old_board_id == $new_board_id) {
+            continue;
+        }
+
+        $body = preg_replace('/(^|[\s(])>>' . preg_quote((string)$old_board_id, '/') . '((?=[\s,.)?!])|$)/m', '$1>>' . $new_board_id . '$2', $body);
+        $body = preg_replace('/(^|[\s(])>>>\/' . preg_quote($source_board, '/') . '\/' . preg_quote((string)$old_board_id, '/') . '((?=[\s,.)?!])|$)/m', '$1>>>/' . $target_board . '/' . $new_board_id . '$2', $body);
+    }
+
+    return $body;
+}
+
 function markup(&$body, $track_cites = false, $op = false) {
     global $board, $config, $markup_urls, $pdo;
 
